@@ -66,6 +66,7 @@ runs:
       run: |
           echo ::set-output name=hotfix::$HOTFIX
           echo ::set-output name=master::$MASTER
+      shell: bash
     
     - name: Set Version
       id: set-version
@@ -98,6 +99,7 @@ runs:
         fi
         echo "::set-output name=version::$VERSION"
         echo "::notice title=Version::$VERSION"
+      shell: bash
     
     - name: Build for production release
       if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
@@ -111,6 +113,7 @@ runs:
           -DscmCommentPrefix="[ci skip] " \
           -DreleaseVersion=${{ steps.set-version.outputs.version }} \
           -Dusername=clearci -Dpassword=${{ inputs.token }}
+      shell: bash
 
     - name: Build for dev release
       env:
@@ -118,6 +121,7 @@ runs:
         GITHUB_ACTOR: clearci
       if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
       run: mvn -DskipTests ${{env.MAVEN_FLAGS}} package
+      shell: bash
 
     - name: Deploy E-Invoice Artifacts for Production
       if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
@@ -126,6 +130,7 @@ runs:
         GITHUB_ACTOR: clearci
 
       run: mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
+      shell: bash
 
     - name: Upload artifacts 
       uses: 'actions/upload-artifact@v4'
