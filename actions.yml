@@ -1,0 +1,136 @@
+name: Build
+description: Build the Java project
+
+inputs:
+  java-version:
+    description: 'The java version to use'
+    required: true
+    default: '17'
+  mavenversion:
+    description: 'The maven version to use'
+    required: true
+    default: '3.8.3'
+  mavenflag:
+    description: 'The maven flag to use'
+    required: true
+    default: '-T 4C -B --no-transfer-progress'
+  java-distribution:
+    description: 'The java distribution to use'
+    required: true
+    default: 'zulu'
+  token:
+    description: 'The GitHub token'
+    required: true
+outputs:
+  version:
+    description: 'The version of the artifact'
+    value: ${{ steps.set-version.outputs.version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ inputs.token }}
+    - name: Set up JDK ${{ inputs.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        server-id: github
+        distribution: ${{ inputs.java-distribution }}
+    - name: Cache local Maven repository
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven
+        restore-keys: |
+          ${{ runner.os }}-maven
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v5
+      with:
+        maven-version: ${{ inputs.maven-version }}
+    
+    - name: Setup Git Config
+      run: |
+          git config --global user.email "clearci@cleartax.in"
+          git config --global user.name "clearci"
+      shell: bash
+
+    - name: Check the source ref
+      id: ref
+      env: 
+          HOTFIX: ${{ contains(github.ref, 'hotfix/') }}
+          MASTER: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+      run: |
+          echo ::set-output name=hotfix::$HOTFIX
+          echo ::set-output name=master::$MASTER
+    
+    - name: Set Version
+      id: set-version
+      run: |
+        if [[ "${{ steps.ref.outputs.master }}" == "true" ]]; then
+            VERSION=$(mvn --non-recursive -q \
+              build-helper:parse-version  exec:exec \
+              -Dexec.executable=echo \
+              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0')
+        elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
+            QUALIFIER=$(mvn --non-recursive -q \
+              build-helper:parse-version  exec:exec \
+              -Dexec.executable=echo \
+              -Dexec.args='${parsedVersion.qualifier}')
+            if [[ -z "$QUALIFIER" ]]; then
+              mvn ${{env.MAVEN_FLAGS}} -q build-helper:parse-version \
+                versions:set \
+                -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT \
+                versions:commit
+              mvn ${{env.MAVEN_FLAGS}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
+            fi
+            VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//')
+        else
+            VERSION="dev-${GITHUB_SHA::8}"
+        fi
+
+        if [[ "x$VERSION" = "x" ]]; then
+            echo "Not able to get the version"
+            exit 1
+        fi
+        echo "::set-output name=version::$VERSION"
+        echo "::notice title=Version::$VERSION"
+    
+    - name: Build for production release
+      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
+      run: |
+        mvn -DskipTests ${{env.MAVEN_FLAGS}} -Darguments=-DskipTests \
+          release:clean release:prepare \
+          -DtagNameFormat="v@{project.version}" \
+          -DscmCommentPrefix="[ci skip] " \
+          -DreleaseVersion=${{ steps.set-version.outputs.version }} \
+          -Dusername=clearci -Dpassword=${{ inputs.token }}
+
+    - name: Build for dev release
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
+      if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
+      run: mvn -DskipTests ${{env.MAVEN_FLAGS}} package
+
+    - name: Deploy E-Invoice Artifacts for Production
+      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
+
+      run: mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
+
+    - name: Upload artifacts 
+      uses: 'actions/upload-artifact@v4'
+      with:
+        name: artifacts-${{github.run_id}}
+        path: |
+          ${{ github.workspace }}/**/*.jar
+        retention-days: 1
