@@ -2,22 +2,18 @@ name: Build
 description: Build the Java project
 
 inputs:
-  java-version:
+  java_version:
     description: 'The java version to use'
-    required: true
     default: '17'
-  mavenversion:
-    description: 'The maven version to use'
-    required: true
-    default: '3.8.3'
-  mavenflag:
-    description: 'The maven flag to use'
-    required: true
-    default: '-T 4C -B --no-transfer-progress'
-  java-distribution:
+  java_distribution:
     description: 'The java distribution to use'
-    required: true
     default: 'zulu'
+  maven_version:
+    description: 'The maven version to use'
+    default: '3.8.3'
+  maven_flag:
+    description: 'The maven flag to use'
+    default: '-T 4C -B --no-transfer-progress'
   token:
     description: 'The GitHub token'
     required: true
@@ -34,12 +30,12 @@ runs:
       with:
         fetch-depth: 0
         token: ${{ inputs.token }}
-    - name: Set up JDK ${{ inputs.java-version }}
+    - name: Set up JDK ${{ inputs.java_version }}
       uses: actions/setup-java@v4
       with:
-        java-version: ${{ inputs.java-version }}
+        java-version: ${{ inputs.java_version }}
         server-id: github
-        distribution: ${{ inputs.java-distribution }}
+        distribution: ${{ inputs.java_distribution }}
     - name: Cache local Maven repository
       uses: actions/cache@v4
       with:
@@ -50,7 +46,7 @@ runs:
     - name: Set up Maven
       uses: stCarolas/setup-maven@v5
       with:
-        maven-version: ${{ inputs.maven-version }}
+        maven-version: ${{ inputs.maven_version }}
     
     - name: Setup Git Config
       run: |
@@ -82,11 +78,11 @@ runs:
               -Dexec.executable=echo \
               -Dexec.args='${parsedVersion.qualifier}')
             if [[ -z "$QUALIFIER" ]]; then
-              mvn ${{inputs.mavenflag}} -q build-helper:parse-version \
+              mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
                 versions:set \
                 -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT \
                 versions:commit
-              mvn ${{inputs.mavenflag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
+              mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
             fi
             VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//')
         else
@@ -107,7 +103,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        mvn -DskipTests ${{inputs.mavenflag}} -Darguments=-DskipTests \
+        mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
           release:clean release:prepare \
           -DtagNameFormat="v@{project.version}" \
           -DscmCommentPrefix="[ci skip] " \
@@ -120,7 +116,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
-      run: mvn -DskipTests ${{inputs.mavenflag}} package
+      run: mvn -DskipTests ${{inputs.maven_flag}} package
       shell: bash
 
     - name: Deploy E-Invoice Artifacts for Production
