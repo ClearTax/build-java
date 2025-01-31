@@ -17,6 +17,9 @@ inputs:
   token:
     description: 'The GitHub token'
     required: true
+  publish_artifacts:
+    description: 'Publish the artifacts'
+    default: 'false'
 outputs:
   version:
     description: 'The version of the artifact'
@@ -114,8 +117,8 @@ runs:
       run: mvn -DskipTests ${{inputs.maven_flag}} package
       shell: bash
 
-    - name: Deploy E-Invoice Artifacts for Production
-      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
+    - name: Deploy Artifacts to Production
+      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' && inputs.publish_artifacts == 'true' }}
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
