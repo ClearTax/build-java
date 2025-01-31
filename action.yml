@@ -114,7 +114,7 @@ runs:
       run: mvn -DskipTests ${{inputs.maven_flag}} package
       shell: bash
 
-    - name: Deploy E-Invoice Artifacts for Production
+    - name: Deploy Artifacts to Production
       if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
