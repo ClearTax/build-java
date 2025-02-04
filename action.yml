@@ -121,7 +121,7 @@ runs:
       shell: bash
 
     - name: Deploy Artifacts to Production
-      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' && inputs.publish_artifacts == 'true' }}
+      if: ${{ ( steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' ) && inputs.publish_artifacts == 'true' }}
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
