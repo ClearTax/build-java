@@ -94,6 +94,9 @@ runs:
         echo "::set-output name=version::$VERSION"
         echo "::notice title=Version::$VERSION"
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
     
     - name: Build for production release
       if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
