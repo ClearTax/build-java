@@ -98,41 +98,41 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
     
-    # - name: Build for production release
-    #   if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
-    #   env:
-    #     GITHUB_TOKEN: ${{ inputs.token }}
-    #     GITHUB_ACTOR: clearci
-    #   run: |
-    #     mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
-    #       release:clean release:prepare \
-    #       -DtagNameFormat="v@{project.version}" \
-    #       -DscmCommentPrefix="[ci skip] " \
-    #       -DreleaseVersion=${{ steps.set-version.outputs.version }} \
-    #       -Dusername=clearci -Dpassword=${{ inputs.token }}
-    #   shell: bash
+    - name: Build for production release
+      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
+      run: |
+        mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
+          release:clean release:prepare \
+          -DtagNameFormat="v@{project.version}" \
+          -DscmCommentPrefix="[ci skip] " \
+          -DreleaseVersion=${{ steps.set-version.outputs.version }} \
+          -Dusername=clearci -Dpassword=${{ inputs.token }}
+      shell: bash
 
-    # - name: Build for dev release
-    #   env:
-    #     GITHUB_TOKEN: ${{ inputs.token }}
-    #     GITHUB_ACTOR: clearci
-    #   if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
-    #   run: mvn -DskipTests ${{inputs.maven_flag}} package
-    #   shell: bash
+    - name: Build for dev release
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
+      if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
+      run: mvn -DskipTests ${{inputs.maven_flag}} package
+      shell: bash
 
-    # - name: Deploy Artifacts to Production
-    #   if: ${{ ( steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' ) && inputs.publish_artifacts == 'true' }}
-    #   env:
-    #     GITHUB_TOKEN: ${{ inputs.token }}
-    #     GITHUB_ACTOR: clearci
+    - name: Deploy Artifacts to Production
+      if: ${{ ( steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' ) && inputs.publish_artifacts == 'true' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
 
-    #   run: mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
-    #   shell: bash
+      run: mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
+      shell: bash
 
-    # - name: Upload artifacts 
-    #   uses: 'actions/upload-artifact@v4'
-    #   with:
-    #     name: artifacts-${{github.run_id}}
-    #     path: |
-    #       ${{ github.workspace }}/**/*.jar
-    #     retention-days: 1
+    - name: Upload artifacts 
+      uses: 'actions/upload-artifact@v4'
+      with:
+        name: artifacts-${{github.run_id}}
+        path: |
+          ${{ github.workspace }}/**/*.jar
+        retention-days: 1
