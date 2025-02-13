@@ -65,12 +65,12 @@ runs:
     - name: Set Version
       id: set-version
       run: |
-        mvn --non-recursive -q \
+        mvn ${{inputs.maven_flag}} --non-recursive -q \
           build-helper:parse-version  exec:exec \
           -Dexec.executable=echo \
           -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0'
 
-        mvn --non-recursive -q \
+        mvn ${{inputs.maven_flag}} --non-recursive -q \
           build-helper:parse-version  exec:exec \
           -Dexec.executable=echo \
           -Dexec.args='${parsedVersion.qualifier}'
