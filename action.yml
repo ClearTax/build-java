@@ -66,12 +66,12 @@ runs:
       id: set-version
       run: |
         if [[ "${{ steps.ref.outputs.master }}" == "true" ]]; then
-            VERSION=$(mvn --non-recursive -q \
+            VERSION=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
               -Dexec.executable=echo \
               -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0')
         elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
-            QUALIFIER=$(mvn --non-recursive -q \
+            QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
               -Dexec.executable=echo \
               -Dexec.args='${parsedVersion.qualifier}')
@@ -82,7 +82,7 @@ runs:
                 versions:commit
               mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
             fi
-            VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//')
+            VERSION=$(mvn ${{inputs.maven_flag}} help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//')
         else
             VERSION="dev-${GITHUB_SHA::8}"
         fi
