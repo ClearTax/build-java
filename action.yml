@@ -65,74 +65,64 @@ runs:
     - name: Set Version
       id: set-version
       run: |
-        if [[ "${{ steps.ref.outputs.master }}" == "true" ]]; then
-            VERSION=$(mvn --non-recursive -q \
-              build-helper:parse-version  exec:exec \
-              -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0')
-        elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
-            QUALIFIER=$(mvn --non-recursive -q \
-              build-helper:parse-version  exec:exec \
-              -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.qualifier}')
-            if [[ -z "$QUALIFIER" ]]; then
-              mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
-                versions:set \
-                -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT \
-                versions:commit
-              mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
-            fi
-            VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//')
-        else
-            VERSION="dev-${GITHUB_SHA::8}"
-        fi
+        mvn --non-recursive -q \
+          build-helper:parse-version  exec:exec \
+          -Dexec.executable=echo \
+          -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0'
 
-        if [[ "x$VERSION" = "x" ]]; then
-            echo "Not able to get the version"
-            exit 1
-        fi
-        echo "::set-output name=version::$VERSION"
-        echo "::notice title=Version::$VERSION"
+        mvn --non-recursive -q \
+          build-helper:parse-version  exec:exec \
+          -Dexec.executable=echo \
+          -Dexec.args='${parsedVersion.qualifier}'
+
+        mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
+          versions:set \
+          -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT \
+          versions:commit
+          
+        mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
+
+        mvn help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
     
-    - name: Build for production release
-      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-        GITHUB_ACTOR: clearci
-      run: |
-        mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
-          release:clean release:prepare \
-          -DtagNameFormat="v@{project.version}" \
-          -DscmCommentPrefix="[ci skip] " \
-          -DreleaseVersion=${{ steps.set-version.outputs.version }} \
-          -Dusername=clearci -Dpassword=${{ inputs.token }}
-      shell: bash
+    # - name: Build for production release
+    #   if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
+    #   env:
+    #     GITHUB_TOKEN: ${{ inputs.token }}
+    #     GITHUB_ACTOR: clearci
+    #   run: |
+    #     mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
+    #       release:clean release:prepare \
+    #       -DtagNameFormat="v@{project.version}" \
+    #       -DscmCommentPrefix="[ci skip] " \
+    #       -DreleaseVersion=${{ steps.set-version.outputs.version }} \
+    #       -Dusername=clearci -Dpassword=${{ inputs.token }}
+    #   shell: bash
 
-    - name: Build for dev release
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-        GITHUB_ACTOR: clearci
-      if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
-      run: mvn -DskipTests ${{inputs.maven_flag}} package
-      shell: bash
+    # - name: Build for dev release
+    #   env:
+    #     GITHUB_TOKEN: ${{ inputs.token }}
+    #     GITHUB_ACTOR: clearci
+    #   if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
+    #   run: mvn -DskipTests ${{inputs.maven_flag}} package
+    #   shell: bash
 
-    - name: Deploy Artifacts to Production
-      if: ${{ ( steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' ) && inputs.publish_artifacts == 'true' }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-        GITHUB_ACTOR: clearci
+    # - name: Deploy Artifacts to Production
+    #   if: ${{ ( steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' ) && inputs.publish_artifacts == 'true' }}
+    #   env:
+    #     GITHUB_TOKEN: ${{ inputs.token }}
+    #     GITHUB_ACTOR: clearci
 
-      run: mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
-      shell: bash
+    #   run: mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
+    #   shell: bash
 
-    - name: Upload artifacts 
-      uses: 'actions/upload-artifact@v4'
-      with:
-        name: artifacts-${{github.run_id}}
-        path: |
-          ${{ github.workspace }}/**/*.jar
-        retention-days: 1
+    # - name: Upload artifacts 
+    #   uses: 'actions/upload-artifact@v4'
+    #   with:
+    #     name: artifacts-${{github.run_id}}
+    #     path: |
+    #       ${{ github.workspace }}/**/*.jar
+    #     retention-days: 1
