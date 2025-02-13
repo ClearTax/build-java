@@ -65,24 +65,34 @@ runs:
     - name: Set Version
       id: set-version
       run: |
-        mvn ${{inputs.maven_flag}} --non-recursive -q \
-          build-helper:parse-version  exec:exec \
-          -Dexec.executable=echo \
-          -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0'
+        if [[ "${{ steps.ref.outputs.master }}" == "true" ]]; then
+            VERSION=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
+              build-helper:parse-version  exec:exec \
+              -Dexec.executable=echo \
+              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0')
+        elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
+            QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
+              build-helper:parse-version  exec:exec \
+              -Dexec.executable=echo \
+              -Dexec.args='${parsedVersion.qualifier}')
+            if [[ -z "$QUALIFIER" ]]; then
+              mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
+                versions:set \
+                -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT \
+                versions:commit
+              mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
+            fi
+            VERSION=$(mvn ${{inputs.maven_flag}} help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//')
+        else
+            VERSION="dev-${GITHUB_SHA::8}"
+        fi
 
-        mvn ${{inputs.maven_flag}} --non-recursive -q \
-          build-helper:parse-version  exec:exec \
-          -Dexec.executable=echo \
-          -Dexec.args='${parsedVersion.qualifier}'
-
-        mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
-          versions:set \
-          -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT \
-          versions:commit
-          
-        mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
-
-        mvn help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//'
+        if [[ "x$VERSION" = "x" ]]; then
+            echo "Not able to get the version"
+            exit 1
+        fi
+        echo "::set-output name=version::$VERSION"
+        echo "::notice title=Version::$VERSION"
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
