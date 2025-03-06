@@ -54,14 +54,14 @@ runs:
 
     - name: Check the source ref
       id: ref
-      env: 
-          HOTFIX: ${{ contains(github.ref, 'hotfix/') }}
-          MASTER: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+      env:
+        HOTFIX: ${{ contains(github.ref, 'hotfix/') }}
+        MASTER: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/activity-processor-v2/main' }}
       run: |
-          echo ::set-output name=hotfix::$HOTFIX
-          echo ::set-output name=master::$MASTER
+        echo ::set-output name=hotfix::$HOTFIX
+        echo ::set-output name=master::$MASTER
       shell: bash
-    
+
     - name: Set Version
       id: set-version
       run: |
