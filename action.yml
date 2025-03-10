@@ -62,7 +62,7 @@ runs:
           echo ::set-output name=master::$MASTER
       shell: bash
 
-    - name: debug:
+    - name: debug
       run: |
          mvn ${{inputs.maven_flag}} --non-recursive \
               build-helper:parse-version  exec:exec \
