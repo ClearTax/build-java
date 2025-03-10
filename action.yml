@@ -68,11 +68,7 @@ runs:
         GITHUB_ACTOR: clearci
       shell: bash
       run: |
-         mvn ${{inputs.maven_flag}} --non-recursive \
-              build-helper:parse-version  exec:exec \
-              -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0'
-          sleep 300
+         sleep 900
     
     - name: Set Version
       id: set-version
