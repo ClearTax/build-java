@@ -61,6 +61,14 @@ runs:
           echo ::set-output name=hotfix::$HOTFIX
           echo ::set-output name=master::$MASTER
       shell: bash
+
+    - name: debug:
+      run: |
+         mvn ${{inputs.maven_flag}} --non-recursive \
+              build-helper:parse-version  exec:exec \
+              -Dexec.executable=echo \
+              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0'
+          sleep 300
     
     - name: Set Version
       id: set-version
