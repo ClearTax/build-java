@@ -63,6 +63,7 @@ runs:
       shell: bash
 
     - name: debug
+      shell: bash
       run: |
          mvn ${{inputs.maven_flag}} --non-recursive \
               build-helper:parse-version  exec:exec \
