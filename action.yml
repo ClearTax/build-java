@@ -20,6 +20,10 @@ inputs:
   publish_artifacts:
     description: 'Publish the artifacts'
     default: 'false'
+  ref:
+    description: 'The ref to build'
+    default: "${{ github.ref }}"
+    required: false
 outputs:
   version:
     description: 'The version of the artifact'
@@ -55,8 +59,8 @@ runs:
     - name: Check the source ref
       id: ref
       env: 
-          HOTFIX: ${{ contains(github.ref, 'hotfix/') }}
-          MASTER: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+          HOTFIX: ${{ contains( inputs.ref, 'hotfix/') }}
+          MASTER: ${{ inputs.ref == 'refs/heads/master' || inputs.ref == 'refs/heads/main' }}
       run: |
           echo ::set-output name=hotfix::$HOTFIX
           echo ::set-output name=master::$MASTER
