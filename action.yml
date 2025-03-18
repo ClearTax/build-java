@@ -73,8 +73,8 @@ runs:
              (mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
               -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0'\
-              || echo "Maven command failed!"
+              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0' || \
+              { echo "Maven command failed!"; exit 1; }
               
         elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
             QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
