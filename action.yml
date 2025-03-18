@@ -93,12 +93,9 @@ runs:
         else
             VERSION="dev-${GITHUB_SHA::8}"
         fi
+        
         if [[ -z "$VERSION" ]]; then
             echo "Not able to get the version. Check Maven output above."
-            exit 1
-        fi
-        if [[ "x$VERSION" = "x" ]]; then
-            echo "Not able to get the version"
             exit 1
         fi
         echo "::set-output name=version::$VERSION"
