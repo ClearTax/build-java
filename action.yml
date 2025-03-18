@@ -73,12 +73,18 @@ runs:
             VERSION=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
               -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0')
+              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0') || {
+            		echo "Failed to generate version for master branch"
+            		exit 1
+        		}
         elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
             QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
               -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.qualifier}')
+              -Dexec.args='${parsedVersion.qualifier}') || {
+        		    echo "Failed to extract qualifier for hotfix branch"
+        		    exit 1
+    		    }
             if [[ -z "$QUALIFIER" ]]; then
               mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
                 versions:set \
@@ -86,15 +92,18 @@ runs:
                 versions:commit
               mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
             fi
-            VERSION=$(mvn ${{inputs.maven_flag}} help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//')
+            VERSION=$(mvn ${{inputs.maven_flag}} help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//') || {
+              echo "Failed to evaluate project version for hotfix branch"
+            	exit 1
+        		}
         else
             VERSION="dev-${GITHUB_SHA::8}"
         fi
 
-        if [[ "x$VERSION" = "x" ]]; then
-            echo "Not able to get the version"
-            exit 1
-        fi
+        if [[ -z "${VERSION// }" ]]; then
+    		   echo "Error: Version string is empty or invalid"
+    		   exit 1
+		    fi
         echo "::set-output name=version::$VERSION"
         echo "::notice title=Version::$VERSION"
       shell: bash
