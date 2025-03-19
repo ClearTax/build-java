@@ -76,7 +76,7 @@ runs:
               -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0') || {
             	echo "Failed to generate version for master branch"
             	exit 1
-        }
+            }
         elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
             QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
