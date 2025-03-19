@@ -80,8 +80,7 @@ runs:
         elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
             QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
-              -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.qualifier}') || {
+              -Dexec.executable=echo -Dexec.args='${parsedVersion.qualifier}') || {
 							echo "Failed to extract qualifier for hotfix branch"
 							exit 1
 						}
@@ -94,16 +93,16 @@ runs:
             fi
             VERSION=$(mvn ${{inputs.maven_flag}} help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//') || {
 							echo "Failed to evaluate project version for hotfix branch"
-			 				exit 1
+							exit 1
 						}
         else
             VERSION="dev-${GITHUB_SHA::8}"
         fi
 
-        if [[ -z "${VERSION// }" ]]; then
-    		   echo "Error: Version string is empty or invalid"
-    		   exit 1
-		    fi
+				if [[ -z "${VERSION// }" ]]; then
+					echo "Error: Version string is empty or invalid"
+					exit 1
+				fi
         echo "::set-output name=version::$VERSION"
         echo "::notice title=Version::$VERSION"
       shell: bash
