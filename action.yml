@@ -74,14 +74,14 @@ runs:
               build-helper:parse-version  exec:exec \
               -Dexec.executable=echo \
               -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0') || {
-            	echo "Failed to generate version for master branch\n${VERSION}" >> $GITHUB_STEP_SUMMARY
+            	echo "Failed to generate version for master branch\n${VERSION}"
             	exit 1
             }
         elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
             QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
               build-helper:parse-version  exec:exec \
               -Dexec.executable=echo -Dexec.args='${parsedVersion.qualifier}') || { 
-              echo "Failed to extract qualifier for hotfix branch\n${QUALIFIER}" >> $GITHUB_STEP_SUMMARY
+              echo "Failed to extract qualifier for hotfix branch\n${QUALIFIER}"
               exit 1 
             }	
             if [[ -z "$QUALIFIER" ]]; then
@@ -92,7 +92,7 @@ runs:
               mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
             fi
             VERSION=$(mvn ${{inputs.maven_flag}} help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//') || {
-              echo "Failed to evaluate project version for hotfix branch\n{VERSION}" >> $GITHUB_STEP_SUMMARY
+              echo "Failed to evaluate project version for hotfix branch\n${VERSION}"
               exit 1
             }
         else
