@@ -137,8 +137,9 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
-
-      run: mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
+      run: |
+        git checkout v${{ steps.set-version.outputs.version }}
+        mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
       shell: bash
 
     - name: Upload artifacts 
