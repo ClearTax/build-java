@@ -138,7 +138,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        git checkout v${{ steps.set-version.outputs.version }}
+        git checkout ${{ steps.set-version.outputs.version }}
         mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
       shell: bash
 
