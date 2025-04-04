@@ -24,6 +24,9 @@ inputs:
     description: 'The ref to build'
     default: "${{ github.ref }}"
     required: false
+  tag_name_prefix:
+    description: 'Tag name prefix to be used for checkout'
+    default: ''
 outputs:
   version:
     description: 'The version of the artifact'
@@ -138,7 +141,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        git checkout ${{ steps.set-version.outputs.version }}
+        git checkout ${{ inputs.tag_name_prefix }}${{ steps.set-version.outputs.version }}
         mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
       shell: bash
 
