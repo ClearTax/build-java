@@ -18,14 +18,14 @@ The action adapts its behavior based on the branch being built (master/main, hot
 
 | Input Name | Description | Default Value | Required |
 |------------|-------------|---------------|----------|
-| `java_version` | The Java version to use | '17' | Optional |
-| `java_distribution` | The Java distribution to use | 'zulu' | Optional |
-| `maven_version` | The Maven version to use | '3.8.3' | Optional |
-| `maven_flag` | Maven command-line flags | '-T 4C -B --no-transfer-progress' | Optional |
+| `java_version` | The Java version to use | 17 | Optional |
+| `java_distribution` | The Java distribution to use | zulu | Optional |
+| `maven_version` | The Maven version to use | 3.8.3 | Optional |
+| `maven_flag` | Maven command-line flags | -T 4C -B --no-transfer-progress | Optional |
 | `token` | The GitHub token | N/A | Required |
-| `publish_artifacts` | Whether to publish artifacts | 'false' | Optional |
+| `publish_artifacts` | Whether to publish artifacts | false | Optional |
 | `ref` | The ref to build | current GitHub ref | Optional |
-| `tag_name_prefix` | Tag name prefix for checkout | '' (empty string) | Optional |
+| `tag_name_prefix` | Tag name prefix for checkout | empty string | Optional |
 
 ### Output
 
