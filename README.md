@@ -1,4 +1,4 @@
-# Detailed Explanation of the Java Build GitHub Action
+# Java Build GitHub Action
 
 ## Overview
 
