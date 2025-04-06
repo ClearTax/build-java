@@ -16,14 +16,16 @@ The action adapts its behavior based on the branch being built (master/main, hot
 
 ### Key Inputs
 
-- `java_version`: The Java version to use (default: '17')
-- `java_distribution`: The Java distribution to use (default: 'zulu')
-- `maven_version`: The Maven version to use (default: '3.8.3')
-- `maven_flag`: Maven command-line flags (default: '-T 4C -B --no-transfer-progress')
-- `token`: The GitHub token (required)
-- `publish_artifacts`: Whether to publish artifacts (default: 'false')
-- `ref`: The ref to build (default: current GitHub ref)
-- `tag_name_prefix`: Tag name prefix for checkout (default: '')
+| Input Name | Description | Default Value | Required |
+|------------|-------------|---------------|----------|
+| `java_version` | The Java version to use | '17' | Optional |
+| `java_distribution` | The Java distribution to use | 'zulu' | Optional |
+| `maven_version` | The Maven version to use | '3.8.3' | Optional |
+| `maven_flag` | Maven command-line flags | '-T 4C -B --no-transfer-progress' | Optional |
+| `token` | The GitHub token | N/A | Required |
+| `publish_artifacts` | Whether to publish artifacts | 'false' | Optional |
+| `ref` | The ref to build | current GitHub ref | Optional |
+| `tag_name_prefix` | Tag name prefix for checkout | '' (empty string) | Optional |
 
 ### Output
 
