@@ -119,7 +119,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
+        mvn -X -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
           release:clean release:prepare \
           -DtagNameFormat="v@{project.version}" \
           -DscmCommentPrefix="[ci skip] " \
