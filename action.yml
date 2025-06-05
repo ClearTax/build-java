@@ -20,17 +20,6 @@ inputs:
   publish_artifacts:
     description: 'Publish the artifacts'
     default: 'false'
-  ref:
-    description: 'The ref to build'
-    default: "${{ github.ref }}"
-    required: false
-  tag_name_prefix:
-    description: 'Tag name prefix to be used for checkout'
-    default: ''
-outputs:
-  version:
-    description: 'The version of the artifact'
-    value: ${{ steps.set-version.outputs.version }}
 
 runs:
   using: 'composite'
@@ -52,97 +41,22 @@ runs:
       uses: stCarolas/setup-maven@v5
       with:
         maven-version: ${{ inputs.maven_version }}
-    
-    - name: Setup Git Config
-      run: |
-          git config --global user.email "clearci@cleartax.in"
-          git config --global user.name "clearci"
-      shell: bash
 
-    - name: Check the source ref
-      id: ref
-      env: 
-          HOTFIX: ${{ contains( inputs.ref, 'hotfix/') }}
-          MASTER: ${{ inputs.ref == 'refs/heads/master' || inputs.ref == 'refs/heads/main' }}
-      run: |
-          echo "hotfix=$HOTFIX" >> $GITHUB_OUTPUT
-          echo "master=$MASTER" >> $GITHUB_OUTPUT
-      shell: bash
-    
-    - name: Set Version
-      id: set-version
-      run: |
-        if [[ "${{ steps.ref.outputs.master }}" == "true" ]]; then
-            VERSION=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
-              build-helper:parse-version  exec:exec \
-              -Dexec.executable=echo \
-              -Dexec.args='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0') || {
-            	echo "Failed to generate version for master branch\n${VERSION}"
-            	exit 1
-            }
-        elif [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then 
-            QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
-              build-helper:parse-version  exec:exec \
-              -Dexec.executable=echo -Dexec.args='${parsedVersion.qualifier}') || { 
-              echo "Failed to extract qualifier for hotfix branch\n${QUALIFIER}"
-              exit 1 
-            }	
-            if [[ -z "$QUALIFIER" ]]; then
-              mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
-                versions:set \
-                -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}-SNAPSHOT \
-                versions:commit
-              mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
-            fi
-            VERSION=$(mvn ${{inputs.maven_flag}} help:evaluate -Dexpression=project.version -q -DforceStdout|sed 's/-SNAPSHOT//') || {
-              echo "Failed to evaluate project version for hotfix branch\n${VERSION}"
-              exit 1
-            }
-        else
-            VERSION="dev-${GITHUB_SHA::8}"
-        fi
-
-        if [[ -z "${VERSION// }" ]]; then
-          echo "Error: Version string is empty or invalid"
-          exit 1
-        fi
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "## Version: $VERSION" >> $GITHUB_STEP_SUMMARY
-      shell: bash
+    - name: Build Project
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
-    
-    - name: Build for production release
-      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-        GITHUB_ACTOR: clearci
-      run: |
-        mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
-          release:clean release:prepare \
-          -DtagNameFormat="v@{project.version}" \
-          -DscmCommentPrefix="[ci skip] " \
-          -DreleaseVersion=${{ steps.set-version.outputs.version }} \
-          -Dusername=clearci -Dpassword=${{ inputs.token }}
-      shell: bash
-
-    - name: Build for dev release
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-        GITHUB_ACTOR: clearci
-      if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
       run: mvn -DskipTests ${{inputs.maven_flag}} package
       shell: bash
 
     - name: Deploy Artifacts to Production
-      if: ${{ ( steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' ) && inputs.publish_artifacts == 'true' }}
+      if: ${{ inputs.publish_artifacts == 'true' }}
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        git checkout ${{ inputs.tag_name_prefix }}${{ steps.set-version.outputs.version }}
         mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
+
       shell: bash
 
     - name: Upload artifacts 
