@@ -20,6 +20,21 @@ inputs:
   publish_artifacts:
     description: 'Publish the artifacts'
     default: 'false'
+  version:
+    description: 'The version to build'
+    required: true
+  default-branch:
+    description: 'The default branch to merge the PR into'
+    required: false
+    default: 'main'
+
+outputs:
+  version:
+    description: 'The version of the artifact'
+    value: ${{ steps.set-version.outputs.version }}
+  artifact-name:
+    description: "The name of artifact it generated"
+    value: artifacts-${{github.run_id}}
 
 runs:
   using: 'composite'
@@ -30,6 +45,7 @@ runs:
         java-version: ${{ inputs.java_version }}
         server-id: github
         distribution: ${{ inputs.java_distribution }}
+    
     - name: Cache local Maven repository
       uses: actions/cache@v4
       with:
@@ -37,17 +53,48 @@ runs:
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
+    
     - name: Set up Maven
       uses: stCarolas/setup-maven@v5
       with:
         maven-version: ${{ inputs.maven_version }}
+  
+    - name: Setup git
+      shell: bash
+      run: |
+        git config --global user.email "clearci@cleartax.in"
+        git config --global user.name "clearci"
+        git checkout -b release-temp-${{ inputs.version }}
 
-    - name: Build Project
+    - name: Extract and bump development version
+      id: version
+      shell: bash
+      run: |
+        TAG="${{ inputs.version }}"
+        CLEAN_TAG="${TAG#v}"
+
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_TAG"
+        PATCH=$((PATCH + 1))
+        NEXT_VERSION="$MAJOR.$MINOR.$PATCH-SNAPSHOT"
+
+        echo "RELEASE_VERSION=$CLEAN_TAG" >> $GITHUB_ENV
+        echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
+
+    - name: Run Maven Release
+      shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
-      run: mvn -DskipTests ${{inputs.maven_flag}} package
-      shell: bash
+      run: |
+        mvn ${{ inputs.maven-flags }} -DskipTests -Darguments=-DskipTests \
+          release:clean release:prepare \
+          -DpushChanges=false \
+          -DreleaseVersion=${RELEASE_VERSION} \
+          -DdevelopmentVersion=${NEXT_VERSION} \
+          -DscmCommentPrefix="[ci skip] " \
+          -Dtag=temp_${{ inputs.version }} \
+          -Dusername=clearci -Dpassword=${{ inputs.token }}
+
 
     - name: Deploy Artifacts to Production
       if: ${{ inputs.publish_artifacts == 'true' }}
@@ -55,9 +102,39 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
+        git checkout temp_${{ inputs.version }}
         mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
-
       shell: bash
+
+    - name: Install GH CLI
+      uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
+      with:
+        gh-cli-version: 2.74.0
+
+    - name: Create PullRequest for snapshot
+      id: create_pr
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh-token }}
+      run: |
+        git push origin release-temp-${{ inputs.release-tag }}
+        PR_URL=$(gh pr create \
+          --title "[ci skip] bump snapshot after ${{ inputs.release-tag }}" \
+          --body "Automated version bump after release." \
+          --base ${{ inputs.default-branch }} \
+          --head release-temp-${{ inputs.release-tag }})
+        echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
+
+    - name: Merge PR
+      shell: bash
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ inputs.gh-token }}
+      run: |
+        if [[ -n "${{ steps.create_pr.outputs.pr-url }}" ]]; then
+          gh pr merge "${{ steps.create_pr.outputs.pr-url }}" --auto --squash --delete-branch || echo "PR merge skipped or failed (non-blocking)"
+        else
+          echo "No PR URL available to merge."
 
     - name: Upload artifacts 
       uses: 'actions/upload-artifact@v4'

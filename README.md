@@ -2,128 +2,108 @@
 
 ## Overview
 
-This GitHub Action is a composite action designed to standardize the build process for Java/Maven projects. It handles several key aspects of the build process:
+This GitHub Action is a composite action designed to streamline the release process for Java/Maven projects. It automates the following key aspects:
 
-1. Java environment setup
-2. Maven configuration
-3. Version management
-4. Build process execution
-5. Artifact handling and deployment
+1. Java and Maven environment setup
+2. Maven release preparation and execution
+3. Automated version bumping for development
+4. Pull request creation for snapshot version updates
+5. Artifact deployment and upload
 
-The action adapts its behavior based on the branch being built (master/main, hotfix, or development branches), applying different versioning strategies and build processes accordingly.
+The action performs a Maven release with the specified version and automatically creates a pull request to bump the development version to the next snapshot.
 
-## Inputs and Outputs
-
-### Key Inputs
+## Inputs
 
 | Input Name | Description | Default Value | Required |
 |------------|-------------|---------------|----------|
-| `java_version` | The Java version to use | 17 | Optional |
-| `java_distribution` | The Java distribution to use | zulu | Optional |
-| `maven_version` | The Maven version to use | 3.8.3 | Optional |
-| `maven_flag` | Maven command-line flags | -T 4C -B --no-transfer-progress | Optional |
-| `token` | The GitHub token | N/A | Required |
-| `publish_artifacts` | Whether to publish artifacts | false | Optional |
-| `ref` | The ref to build | current GitHub ref | Optional |
-| `tag_name_prefix` | Tag name prefix for checkout | empty string | Optional |
+| `java_version` | The Java version to use | `17` | No |
+| `java_distribution` | The Java distribution to use | `zulu` | No |
+| `maven_version` | The Maven version to use | `3.8.3` | No |
+| `maven_flag` | Maven command-line flags | `-T 4C -B --no-transfer-progress` | No |
+| `token` | The GitHub token for authentication | N/A | **Yes** |
+| `version` | The version to release (e.g., `1.2.3`) | N/A | **Yes** |
+| `publish_artifacts` | Whether to deploy artifacts to Maven repository | `false` | No |
+| `default-branch` | The default branch to merge the PR into | `main` | No |
 
-### Output
+## Outputs
 
-- `version`: The version of the built artifact, accessible via `${{ steps.set-version.outputs.version }}`
+| Output Name | Description |
+|-------------|-------------|
+| `version` | The version of the released artifact |
+| `artifact-name` | The name of the uploaded artifact (format: `artifacts-{run-id}`) |
 
-## Workflow Steps in Detail
+## Usage Examples
 
-### 1. Environment Setup
+### Basic Release
 
-The action begins by setting up the Java environment using the official `actions/setup-java@v4` action to install the specified Java version and distribution.
+```yaml
+name: Release
 
-### 2. Maven Configuration
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version'
+        required: true
+        type: string
 
-The action configures Maven with caching to speed up builds. It uses `actions/cache@v4` to cache the Maven repository and `stCarolas/setup-maven@v5` to set up the specified Maven version.
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-### 3. Git Configuration
+      - uses: ClearTax/build-java@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ github.event.inputs.version }}
+          default-branch: main
+```
 
-The action configures Git with a specific user identity ("clearci") to ensure consistent commit authoring and proper access to repositories.
+### Release with Artifact Deployment
 
-### 4. Branch Detection
+```yaml
+name: Production Release
 
-The action determines the type of branch being built:
-- A master/main branch
-- A hotfix branch
-- Any other branch (development)
+on:
+  push:
+    tags:
+      - 'v*'
 
-The result is stored as outputs (`hotfix` and `master`) for use in subsequent steps.
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-### 5. Version Management
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-The action implements sophisticated version management based on the branch type:
+      - uses: ClearTax/build-java@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ steps.version.outputs.VERSION }}
+          publish_artifacts: true
+          default-branch: main
+```
 
-- **Master/Main Branch**: Increments the minor version and sets patch to 0 (e.g., 1.2.0 → 1.3.0)
-- **Hotfix Branch**:
-  - Checks if the current version has a qualifier
-  - If not, increments the patch version and adds a SNAPSHOT suffix
-  - Commits this change to the repository
-  - Uses the version without the SNAPSHOT suffix for the build
-- **Other Branches**: Uses a development version based on the first 8 characters of the commit SHA (e.g., dev-a1b2c3d4)
+### Custom Java and Maven Versions
 
-### 6. Build Process
-
-The build process varies based on the branch type:
-
-#### For Master/Hotfix Branches (Production Release):
-
-This performs a full Maven release process with:
-- Skipping tests
-- Creating a Git tag with the format "v{version}"
-- Adding "[ci skip]" prefix to commit messages
-- Using the version determined in the previous step
-
-#### For Other Branches (Development Build):
-
-This performs a standard Maven package operation, skipping tests.
-
-### 7. Artifact Deployment (Optional)
-
-For production builds (master/hotfix), artifacts can optionally be deployed to a Maven repository when `publish_artifacts` is set to 'true'. This step:
-- Checks out the tag created during the release process
-- Deploys the artifacts using Maven's deploy goal with settings from `.mvn/settings.xml`
-
-### 8. Artifact Upload
-
-Finally, all builds upload artifacts to GitHub Actions, making the built JAR files available for download from the GitHub Actions interface, with a retention period of 1 day.
-
-## Branch-Based Strategy Summary
-
-The action implements a sophisticated branch-based strategy:
-
-1. **Master/Main Branch**:
-   - Treated as production releases
-   - Increments minor version (1.2.0 → 1.3.0)
-   - Performs full Maven release with tagging
-   - Optionally deploys artifacts
-
-2. **Hotfix Branch**:
-   - Special handling for urgent fixes
-   - Increments patch version if needed (1.2.0 → 1.2.1)
-   - Performs full Maven release with tagging
-   - Optionally deploys artifacts
-
-3. **Other Branches**:
-   - Treated as development builds
-   - Uses commit-based versioning (dev-a1b2c3d4)
-   - Performs standard Maven package operation
-   - Does not deploy artifacts (but still uploads them to GitHub Actions)
-
-## Key Technical Features
-
-1. **Automated Version Management**: Automatically determines appropriate version numbers based on branch type and existing version.
-
-2. **Conditional Build Processes**: Adapts the build process based on the branch type.
-
-3. **Artifact Management**: Uploads artifacts for all builds and optionally deploys them for production builds.
-
-4. **Caching**: Implements Maven repository caching to improve build performance.
-
-5. **Configurable Environment**: Allows customization of Java version, distribution, Maven version, and other parameters.
-
-This composite action provides a standardized, reliable, and maintainable build process for Java/Maven projects, with sophisticated version management and branch-based strategies.
+```yaml
+- uses: ClearTax/build-java@main
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+    version: '2.0.0'
+    java_version: '21'
+    java_distribution: 'temurin'
+    maven_version: '3.9.5'
+    maven_flag: '-T 1C -B'
+    default-branch: develop
+```
