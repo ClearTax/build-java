@@ -23,7 +23,7 @@ The action performs a Maven release with the specified version and automatically
 | `token` | The GitHub token for authentication | N/A | **Yes** |
 | `version` | The version to release (e.g., `1.2.3`) | N/A | **Yes** |
 | `publish_artifacts` | Whether to deploy artifacts to Maven repository | `false` | No |
-| `default-branch` | The default branch to merge the PR into | `main` | No |
+| `default_branch` | The default branch to merge the PR into | `main` | No |
 
 ## Outputs
 

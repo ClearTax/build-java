@@ -23,7 +23,7 @@ inputs:
   version:
     description: 'The version to build'
     required: true
-  default-branch:
+  default_branch:
     description: 'The default branch to merge the PR into'
     required: false
     default: 'main'
@@ -86,7 +86,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        mvn ${{ inputs.maven-flags }} -DskipTests -Darguments=-DskipTests \
+        mvn ${{ inputs.maven_flags }} -DskipTests -Darguments=-DskipTests \
           release:clean release:prepare \
           -DpushChanges=false \
           -DreleaseVersion=${RELEASE_VERSION} \
@@ -103,7 +103,7 @@ runs:
         GITHUB_ACTOR: clearci
       run: |
         git checkout temp_${{ inputs.version }}
-        mvn -fn deploy --settings ./.mvn/settings.xml -T 4C -DskipTests --file pom.xml
+        mvn -fn deploy ${{ inputs.maven_flags }} -T 4C -DskipTests --file pom.xml
       shell: bash
 
     - name: Install GH CLI
@@ -115,21 +115,21 @@ runs:
       id: create_pr
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.gh-token }}
+        GH_TOKEN: ${{ inputs.token }}
       run: |
-        git push origin release-temp-${{ inputs.release-tag }}
+        git push origin release-temp-${{ inputs.version }}
         PR_URL=$(gh pr create \
-          --title "[ci skip] bump snapshot after ${{ inputs.release-tag }}" \
+          --title "[ci skip] bump snapshot after ${{ inputs.version }}" \
           --body "Automated version bump after release." \
-          --base ${{ inputs.default-branch }} \
-          --head release-temp-${{ inputs.release-tag }})
+          --base ${{ inputs.default_branch }} \
+          --head release-temp-${{ inputs.version }})
         echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
 
     - name: Merge PR
       shell: bash
       continue-on-error: true
       env:
-        GH_TOKEN: ${{ inputs.gh-token }}
+        GH_TOKEN: ${{ inputs.token }}
       run: |
         if [[ -n "${{ steps.create_pr.outputs.pr-url }}" ]]; then
           gh pr merge "${{ steps.create_pr.outputs.pr-url }}" --auto --squash --delete-branch || echo "PR merge skipped or failed (non-blocking)"
