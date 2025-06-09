@@ -86,7 +86,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        mvn ${{ inputs.maven_flags }} -DskipTests -Darguments=-DskipTests \
+        mvn ${{ inputs.maven_flag }} -DskipTests -Darguments=-DskipTests \
           release:clean release:prepare \
           -DpushChanges=false \
           -DreleaseVersion=${RELEASE_VERSION} \
@@ -103,7 +103,7 @@ runs:
         GITHUB_ACTOR: clearci
       run: |
         git checkout temp_${{ inputs.version }}
-        mvn -fn deploy ${{ inputs.maven_flags }} -T 4C -DskipTests --file pom.xml
+        mvn -fn deploy ${{ inputs.maven_flag }} -T 4C -DskipTests --file pom.xml
       shell: bash
 
     - name: Install GH CLI
