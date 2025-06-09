@@ -135,6 +135,7 @@ runs:
           gh pr merge "${{ steps.create_pr.outputs.pr-url }}" --auto --squash --delete-branch || echo "PR merge skipped or failed (non-blocking)"
         else
           echo "No PR URL available to merge."
+        fi
 
     - name: Upload artifacts 
       uses: 'actions/upload-artifact@v4'
