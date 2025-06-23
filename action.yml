@@ -26,7 +26,7 @@ inputs:
   default_branch:
     description: 'The default branch to merge the PR into'
     required: false
-    default: 'main'
+    default: "${{ github.event.repository.default_branch }}"
 
 outputs:
   version:
@@ -115,7 +115,7 @@ runs:
       id: create_pr
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.token }}
+        GH_TOKEN: ${{ github.token || inputs.token }}
       run: |
         git push origin release-temp-${{ inputs.version }}
         PR_URL=$(gh pr create \
@@ -132,7 +132,7 @@ runs:
         GH_TOKEN: ${{ inputs.token }}
       run: |
         if [[ -n "${{ steps.create_pr.outputs.pr-url }}" ]]; then
-          gh pr merge "${{ steps.create_pr.outputs.pr-url }}" --auto --squash --delete-branch || echo "PR merge skipped or failed (non-blocking)"
+          gh pr merge "${{ steps.create_pr.outputs.pr-url }}" --admin --squash --delete-branch || echo "PR merge skipped or failed (non-blocking)"
         else
           echo "No PR URL available to merge."
         fi
