@@ -80,6 +80,7 @@ runs:
         echo "RELEASE_VERSION=$CLEAN_TAG" >> $GITHUB_ENV
         echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
     - name: Install Maven Daemon
+      shell: bash
       run: |
         curl -s https://downloads.apache.org/maven/mvnd/1.0.2/maven-mvnd-1.0.2-linux-amd64.zip -o mvnd.zip
         unzip mvnd.zip
