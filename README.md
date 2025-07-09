@@ -24,6 +24,7 @@ The action performs a Maven release with the specified version and automatically
 | `version` | The version to release (e.g., `1.2.3`) | N/A | **Yes** |
 | `publish_artifacts` | Whether to deploy artifacts to Maven repository | `false` | No |
 | `default_branch` | The default branch to merge the PR into | `main` | No |
+| `skip_snapshot` | Skip the snapshot creation step | `true` | No |
 
 ## Outputs
 
@@ -61,6 +62,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ github.event.inputs.version }}
           default-branch: main
+          
 ```
 
 ### Release with Artifact Deployment
