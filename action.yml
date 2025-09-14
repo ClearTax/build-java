@@ -124,7 +124,7 @@ runs:
       run: |
         git push origin release-temp-${{ inputs.version }}
         PR_URL=$(gh pr create \
-          --title "[ci skip] bump snapshot after ${{ inputs.version }}" \
+          --title "ci: [ci skip] bump snapshot after ${{ inputs.version }}" \
           --body "Automated version bump after release." \
           --base ${{ inputs.default_branch }} \
           --head release-temp-${{ inputs.version }})
