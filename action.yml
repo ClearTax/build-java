@@ -26,7 +26,7 @@ inputs:
   default_branch:
     description: 'The default branch to merge the PR into'
     required: false
-    default: "${{ github.event.repository.default_branch }}"
+    default: "${{ github.ref_name }}"
   skip-snapshot:
     description: 'Skip the snapshot creation'
     default: 'true'
