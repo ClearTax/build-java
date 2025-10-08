@@ -120,7 +120,7 @@ runs:
         GITHUB_ACTOR: clearci
       run: |
         mvn -DskipTests ${{inputs.maven_flag}} -Darguments=-DskipTests \
-         -Dorg.slf4j.simpleLogger.showDateTime=true" -Dorg.slf4j.simpleLogger.dateTimeFormat=HH:mm:ss,SSS" \
+         -Dorg.slf4j.simpleLogger.showDateTime=true -Dorg.slf4j.simpleLogger.dateTimeFormat=HH:mm:ss,SSS \
           release:clean release:prepare \
           -DtagNameFormat="v@{project.version}" \
           -DscmCommentPrefix="[ci skip] " \
@@ -133,7 +133,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       if: ${{ steps.ref.outputs.master == 'false' && steps.ref.outputs.hotfix == 'false' }}
-      run: mvn -DskipTests -Dorg.slf4j.simpleLogger.showDateTime=true" -Dorg.slf4j.simpleLogger.dateTimeFormat=HH:mm:ss,SSS" ${{inputs.maven_flag}} package
+      run: mvn -DskipTests -Dorg.slf4j.simpleLogger.showDateTime=true -Dorg.slf4j.simpleLogger.dateTimeFormat=HH:mm:ss,SSS ${{inputs.maven_flag}} package
       shell: bash
 
     - name: Deploy Artifacts to Production
