@@ -81,6 +81,7 @@ runs:
 
     - name: Enable Maven build cache extension
       if: ${{ inputs.enabled_build_cache == 'true' }}
+      shell: bash
       run: |
         mkdir -p .mvn
         cat > .mvn/extensions.xml <<'EOF'
