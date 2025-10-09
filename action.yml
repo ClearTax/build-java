@@ -27,6 +27,11 @@ inputs:
   tag_name_prefix:
     description: 'Tag name prefix to be used for checkout'
     default: ''
+  aws_role_arn:
+    description: 'The Amazon Resource Name (ARN) of the role to assume. This is required for s3 cache'
+    default: ''
+    required: false
+
 outputs:
   version:
     description: 'The version of the artifact'
@@ -41,13 +46,35 @@ runs:
         java-version: ${{ inputs.java_version }}
         server-id: github
         distribution: ${{ inputs.java_distribution }}
-    - name: Cache local Maven repository
-      uses: actions/cache@v4
+    
+    - name: Configure AWS Credentials for s3 cache
+      if: inputs.aws_role_arn != ""
+      uses: aws-actions/configure-aws-credentials@v5.0.0
+      with:
+        aws-region: ap-south-1
+        role-to-assume: ${{ inputs.aws_role_arn }}
+        
+    - name: Cache Maven repository (S3)
+      uses: runs-on/cache@v4
+      if: inputs.aws_role_arn != ""
+      env:
+        AWS_REGION: ap-south-1
+        RUNS_ON_S3_BUCKET_CACHE: "ct-github-action-cache"
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
+        
+    - name: Cache local Maven repository
+      uses: actions/cache@v4
+      if: inputs.aws_role_arn == ""
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven
+        restore-keys: |
+          ${{ runner.os }}-maven
+          
     - name: Set up Maven
       uses: stCarolas/setup-maven@v5
       with:

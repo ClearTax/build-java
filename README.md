@@ -26,6 +26,7 @@ The action adapts its behavior based on the branch being built (master/main, hot
 | `publish_artifacts` | Whether to publish artifacts | false | Optional |
 | `ref` | The ref to build | current GitHub ref | Optional |
 | `tag_name_prefix` | Tag name prefix for checkout | empty string | Optional |
+| `aws_role_arn` | The Amazon Resource Name (ARN) of the role to assume for S3 cache | empty string | Optional |
 
 ### Output
 
@@ -39,7 +40,12 @@ The action begins by setting up the Java environment using the official `actions
 
 ### 2. Maven Configuration
 
-The action configures Maven with caching to speed up builds. It uses `actions/cache@v4` to cache the Maven repository and `stCarolas/setup-maven@v5` to set up the specified Maven version.
+The action configures Maven with caching to speed up builds. It supports two caching mechanisms:
+
+- **Local Cache**: Uses `actions/cache@v4` to cache the Maven repository locally within GitHub Actions.
+- **S3 Cache**: When `aws_role_arn` is provided, uses `runs-on/cache@v4` with AWS S3 for more persistent and shared caching across workflows.
+
+The action also uses `stCarolas/setup-maven@v5` to set up the specified Maven version.
 
 ### 3. Git Configuration
 
@@ -122,8 +128,51 @@ The action implements a sophisticated branch-based strategy:
 
 3. **Artifact Management**: Uploads artifacts for all builds and optionally deploys them for production builds.
 
-4. **Caching**: Implements Maven repository caching to improve build performance.
+4. **Caching**: Implements Maven repository caching to improve build performance, with support for both local GitHub Actions cache and S3-based caching.
 
 5. **Configurable Environment**: Allows customization of Java version, distribution, Maven version, and other parameters.
 
 This composite action provides a standardized, reliable, and maintainable build process for Java/Maven projects, with sophisticated version management and branch-based strategies.
+
+## S3 Cache Configuration
+
+The action supports using Amazon S3 for caching Maven dependencies, which provides several advantages over the standard GitHub Actions cache:
+
+1. **Persistent Storage**: Cache persists beyond the 7-day limit of GitHub Actions cache
+2. **Cross-Workflow Sharing**: Cache can be shared across different workflows and repositories
+3. **Improved Performance**: Potentially faster cache operations, especially for large dependency sets
+
+### Requirements for S3 Cache
+
+To use the S3 cache functionality:
+
+1. **AWS Role ARN**: Provide an AWS Role ARN via the `aws_role_arn` input parameter
+2. **Permissions**: The GitHub workflow must have `permissions: write-all` set to allow the action to configure AWS credentials
+3. **S3 Bucket**: The action uses a predefined S3 bucket (`ct-github-action-cache`) in the `ap-south-1` region
+
+### Example Workflow with S3 Cache
+
+```yaml
+name: Build with S3 Cache
+
+on:
+  push:
+    branches: [ main ]
+
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build with Java
+        uses: cleartax/build-java@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          aws_role_arn: ${{ secrets.AWS_ASSUME_ROLE_ARN }}
+```
+
+When `aws_role_arn` is not provided, the action automatically falls back to using the standard GitHub Actions cache.
