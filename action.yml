@@ -48,15 +48,14 @@ runs:
         distribution: ${{ inputs.java_distribution }}
     
     - name: Configure AWS Credentials for s3 cache
-      if: inputs.aws_role_arn != ""
+      if: ${{ inputs.aws_role_arn != '' }}
       uses: aws-actions/configure-aws-credentials@v5.0.0
       with:
         aws-region: ap-south-1
         role-to-assume: ${{ inputs.aws_role_arn }}
-        
     - name: Cache Maven repository (S3)
       uses: runs-on/cache@v4
-      if: inputs.aws_role_arn != ""
+      if: ${{ inputs.aws_role_arn != '' }}
       env:
         AWS_REGION: ap-south-1
         RUNS_ON_S3_BUCKET_CACHE: "ct-github-action-cache"
@@ -65,16 +64,14 @@ runs:
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
-        
     - name: Cache local Maven repository
       uses: actions/cache@v4
-      if: inputs.aws_role_arn == ""
+      if: ${{ inputs.aws_role_arn == '' }}
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
-          
     - name: Set up Maven
       uses: stCarolas/setup-maven@v5
       with:
