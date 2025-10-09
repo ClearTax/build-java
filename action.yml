@@ -10,7 +10,7 @@ inputs:
     default: 'zulu'
   maven_version:
     description: 'The maven version to use'
-    default: '3.8.3'
+    default: '3.9.11'
   maven_flag:
     description: 'The maven flag to use'
     default: '-T 4C -B --no-transfer-progress'
@@ -31,7 +31,9 @@ inputs:
     description: 'The Amazon Resource Name (ARN) of the role to assume. This is required for s3 cache'
     default: ''
     required: false
-
+  enabled_build_cache:
+    description: 'This enables build-cache extension https://maven.apache.org/extensions/maven-build-cache-extension'
+    default: 'false'
 outputs:
   version:
     description: 'The version of the artifact'
@@ -60,7 +62,9 @@ runs:
         AWS_REGION: ap-south-1
         RUNS_ON_S3_BUCKET_CACHE: "ct-github-action-cache"
       with:
-        path: ~/.m2/repository
+        path: |
+          ~/.m2/repository
+          ~/.m2/build-cache
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
@@ -68,10 +72,27 @@ runs:
       uses: actions/cache@v4
       if: ${{ inputs.aws_role_arn == '' }}
       with:
-        path: ~/.m2/repository
+        path: |
+          ~/.m2/repository
+          ~/.m2/build-cache
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
+
+    - name: Enable Maven build cache extension
+      if: ${{ inputs.enabled_build_cache == 'true' }}
+      run: |
+        mkdir -p .mvn
+        cat > .mvn/extensions.xml <<'EOF'
+        <extensions>
+          <extension>
+            <groupId>org.apache.maven.extensions</groupId>
+            <artifactId>maven-build-cache-extension</artifactId>
+            <version>1.2.0</version>
+          </extension>
+        </extensions>
+        EOF
+        
     - name: Set up Maven
       uses: stCarolas/setup-maven@v5
       with:
