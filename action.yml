@@ -40,6 +40,11 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Setup Data Collection
+      uses: cleartax/github-actions-metrics@main
+      with:
+        data_platform_endpoint: 'https://app-dev-http.clear.in/api/analytics/events'
+        
     - name: Set up JDK ${{ inputs.java_version }}
       uses: actions/setup-java@v4
       with:
