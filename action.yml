@@ -42,8 +42,10 @@ runs:
   steps:
     - name: Setup Data Collection
       uses: cleartax/github-actions-metrics@main
+      continue-on-error: true
       with:
         data_platform_endpoint: 'https://app-dev-http.clear.in/api/analytics/events'
+        build_cache_enabled: ${{ inputs.aws_role_arn != '' }}
         
     - name: Set up JDK ${{ inputs.java_version }}
       uses: actions/setup-java@v4
