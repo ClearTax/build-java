@@ -134,7 +134,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        git checkout temp_${{ inputs.version }}
+        git checkout release-temp-${{ inputs.version }}
         mvn -fn deploy ${{ inputs.maven_flag }} -T 4C -DskipTests --file pom.xml
       shell: bash
 
