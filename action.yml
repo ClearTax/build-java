@@ -183,6 +183,10 @@ runs:
             VERSION="${{ steps.set-version-trunk.outputs.version }}"
           fi
         fi
+        if [[ -z "$VERSION" ]]; then
+          echo "Version resolution failed" >&2
+          exit 1
+        fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "## Version: $VERSION" >> $GITHUB_STEP_SUMMARY
       shell: bash
