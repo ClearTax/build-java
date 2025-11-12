@@ -32,8 +32,8 @@ inputs:
     default: ''
     required: false
   versioning_strategy:
-    description: 'Versioning strategy: manual (Maven-based) or trunk (automated)'
-    default: 'manual'
+    description: 'Versioning strategy: maven (Maven-based) or trunk (automated)'
+    default: 'maven'
     required: false
 
 outputs:
@@ -107,9 +107,9 @@ runs:
           echo "master=$MASTER" >> $GITHUB_OUTPUT
       shell: bash
     
-    - name: Set Version (Manual Strategy)
+    - name: Set Version (Maven Strategy)
       id: set-version-manual
-      if: ${{ inputs.versioning_strategy == 'manual' }}
+      if: ${{ inputs.versioning_strategy == 'maven' }}
       run: |
         if [[ "${{ steps.ref.outputs.master }}" == "true" ]]; then
             VERSION=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
@@ -173,7 +173,7 @@ runs:
     - name: Set Version Output
       id: set-version
       run: |
-        if [[ "${{ inputs.versioning_strategy }}" == "manual" ]]; then
+        if [[ "${{ inputs.versioning_strategy }}" == "maven" ]]; then
           VERSION="${{ steps.set-version-manual.outputs.version }}"
         else
           if [[ "${{ steps.ref.outputs.master }}" == "true" || "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then
