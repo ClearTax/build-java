@@ -177,7 +177,8 @@ runs:
           VERSION="${{ steps.set-version-manual.outputs.version }}"
         else
           if [[ "${{ steps.ref.outputs.master }}" == "true" || "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then
-            VERSION="${{ steps.get-next-version.outputs.version }}"
+            VERSION_WITH_V="${{ steps.get-next-version.outputs.version }}"
+            VERSION="${VERSION_WITH_V#v}"
           else
             VERSION="${{ steps.set-version-trunk.outputs.version }}"
           fi
@@ -226,9 +227,15 @@ runs:
         path: |
           ${{ github.workspace }}/**/*.jar
         retention-days: 1
-    - name: Create release
-      if: if: ${{ inputs.versioning_strategy == 'trunk' }}
-      uses: cleartax/composite-workflows/semantic-release@main
+    - name: Create Release
+      uses: actions/create-release@v1
+      if: ${{ inputs.versioning_strategy == 'trunk' && (steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true') }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
       with:
-          skip-release-pr: true
-          token: ${{ inputs.token }}
+        tag_name: ${{ steps.get-next-version.outputs.version }}
+        release_name: Release ${{ steps.get-next-version.outputs.version }}
+        body: |
+            This release corresponds to tag ${{ steps.get-next-version.outputs.version }}
+        draft: false
+        prerelease: false
