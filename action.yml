@@ -151,7 +151,8 @@ runs:
       env:
         GH_TOKEN: ${{ github.token || inputs.token }}
       run: |
-        git push origin release-temp-${{ inputs.version }}
+        BRANCH_NAME="release-temp-${{ inputs.version }}-${{ github.run_number }}"
+        git push origin $BRANCH_NAME
         BASE_BRANCH=${{ inputs.default_branch }}
         if [[ "${{ inputs.default_branch }}" == "${{ inputs.version }}" ]]; then
           BASE_BRANCH=${{ github.event.repository.default_branch }}
@@ -160,7 +161,7 @@ runs:
           --title "ci: [ci skip] bump snapshot after ${{ inputs.version }}" \
           --body "Automated version bump after release." \
           --base $BASE_BRANCH \
-          --head release-temp-${{ inputs.version }})
+          --head $BRANCH_NAME)
         echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
 
     - name: Merge PR
