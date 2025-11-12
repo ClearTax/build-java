@@ -31,6 +31,10 @@ inputs:
     description: 'The Amazon Resource Name (ARN) of the role to assume. This is required for s3 cache'
     default: ''
     required: false
+  versioning_strategy:
+    description: 'Versioning strategy: manual (Maven-based) or trunk (automated)'
+    default: 'manual'
+    required: false
 
 outputs:
   version:
@@ -60,6 +64,7 @@ runs:
       with:
         aws-region: ap-south-1
         role-to-assume: ${{ inputs.aws_role_arn }}
+        
     - name: Cache Maven repository (S3)
       uses: runs-on/cache@v4
       if: ${{ inputs.aws_role_arn != '' }}
@@ -71,6 +76,7 @@ runs:
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
+    
     - name: Cache local Maven repository
       uses: actions/cache@v4
       if: ${{ inputs.aws_role_arn == '' }}
@@ -79,6 +85,7 @@ runs:
         key: ${{ runner.os }}-maven
         restore-keys: |
           ${{ runner.os }}-maven
+    
     - name: Set up Maven
       uses: stCarolas/setup-maven@v5
       with:
@@ -100,8 +107,9 @@ runs:
           echo "master=$MASTER" >> $GITHUB_OUTPUT
       shell: bash
     
-    - name: Set Version
-      id: set-version
+    - name: Set Version (Manual Strategy)
+      id: set-version-manual
+      if: ${{ inputs.versioning_strategy == 'manual' }}
       run: |
         if [[ "${{ steps.ref.outputs.master }}" == "true" ]]; then
             VERSION=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
@@ -138,11 +146,45 @@ runs:
           exit 1
         fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "## Version: $VERSION" >> $GITHUB_STEP_SUMMARY
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
+
+    - name: Set Version (Trunk Strategy)
+      id: set-version-trunk
+      if: ${{ inputs.versioning_strategy == 'trunk' }}
+      run: |
+        if [[ "${{ steps.ref.outputs.master }}" == "true" || "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then
+            echo "Getting version from ClearTax/get-next-version-action"
+        else
+            VERSION="dev-${GITHUB_SHA::8}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    - name: Get Next Version (Trunk Strategy - Master/Hotfix)
+      id: get-next-version
+      if: ${{ inputs.versioning_strategy == 'trunk' && (steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true') }}
+      uses: ClearTax/get-next-version-action@main
+      with:
+        repo-token: ${{ inputs.token }}
+
+    - name: Set Version Output
+      id: set-version
+      run: |
+        if [[ "${{ inputs.versioning_strategy }}" == "manual" ]]; then
+          VERSION="${{ steps.set-version-manual.outputs.version }}"
+        else
+          if [[ "${{ steps.ref.outputs.master }}" == "true" || "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then
+            VERSION="${{ steps.get-next-version.outputs.version }}"
+          else
+            VERSION="${{ steps.set-version-trunk.outputs.version }}"
+          fi
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "## Version: $VERSION" >> $GITHUB_STEP_SUMMARY
+      shell: bash
     
     - name: Build for production release
       if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
@@ -184,3 +226,9 @@ runs:
         path: |
           ${{ github.workspace }}/**/*.jar
         retention-days: 1
+    - name: Create release
+      if: if: ${{ inputs.versioning_strategy == 'trunk' }}
+      uses: cleartax/composite-workflows/semantic-release@main
+      with:
+          skip-release-pr: true
+          token: ${{ inputs.token }}
