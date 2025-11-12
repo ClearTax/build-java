@@ -134,7 +134,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_ACTOR: clearci
       run: |
-        git checkout release-temp-${{ inputs.version }}
+        git checkout temp_${{ inputs.version }}
         mvn -fn deploy ${{ inputs.maven_flag }} -T 4C -DskipTests --file pom.xml
       shell: bash
 
@@ -152,10 +152,14 @@ runs:
         GH_TOKEN: ${{ github.token || inputs.token }}
       run: |
         git push origin release-temp-${{ inputs.version }}
+        BASE_BRANCH=${{ inputs.default_branch }}
+        if [[ "${{ inputs.default_branch }}" == "${{ inputs.version }}" ]]; then
+          BASE_BRANCH=${{ github.event.repository.default_branch }}
+        fi
         PR_URL=$(gh pr create \
           --title "ci: [ci skip] bump snapshot after ${{ inputs.version }}" \
           --body "Automated version bump after release." \
-          --base ${{ inputs.default_branch }} \
+          --base $BASE_BRANCH \
           --head release-temp-${{ inputs.version }})
         echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
 
