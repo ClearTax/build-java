@@ -172,13 +172,33 @@ runs:
 
     - name: Set Version Output
       id: set-version
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_ACTOR: clearci
       run: |
         if [[ "${{ inputs.versioning_strategy }}" == "maven" ]]; then
           VERSION="${{ steps.set-version-manual.outputs.version }}"
         else
           if [[ "${{ steps.ref.outputs.master }}" == "true" || "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then
-            VERSION_WITH_V="${{ steps.get-next-version.outputs.version }}"
-            VERSION="${VERSION_WITH_V#v}"
+              VERSION_WITH_V="${{ steps.get-next-version.outputs.version }}"
+              VERSION="${VERSION_WITH_V#v}"
+              if [[ "${{ steps.ref.outputs.hotfix }}" == "true" ]]; then
+                  echo "Checking if pom.xml contains snapshot version"
+                  QUALIFIER=$(mvn ${{inputs.maven_flag}} --non-recursive -q \
+                    build-helper:parse-version  exec:exec \
+                    -Dexec.executable=echo -Dexec.args='${parsedVersion.qualifier}') || { 
+                    echo "Failed to extract qualifier for hotfix branch\n${QUALIFIER}"
+                    exit 1 
+                  }	
+                  if [[ -z "$QUALIFIER" ]]; then
+                    echo "Updating pom.xml with version qualifier"
+                    mvn ${{inputs.maven_flag}} -q build-helper:parse-version \
+                      versions:set \
+                      -DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.incrementalVersion}-SNAPSHOT \
+                      versions:commit
+                    mvn ${{inputs.maven_flag}} -q scm:checkin -Dmessage="[ci skip] set snapshot version"
+                  fi
+              fi
           else
             VERSION="${{ steps.set-version-trunk.outputs.version }}"
           fi
