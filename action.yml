@@ -96,8 +96,8 @@ runs:
       run: |
         git config --global user.email "clearci@cleartax.in"
         git config --global user.name "clearci"
-        git checkout -b release-temp-${{ inputs.version }}
-
+        git checkout -b release-temp-${{ inputs.version }}-${{ github.run_number }}
+        
     - name: Extract and bump development version
       id: version
       shell: bash
@@ -151,8 +151,6 @@ runs:
       env:
         GH_TOKEN: ${{ github.token || inputs.token }}
       run: |
-        BRANCH_NAME="release-temp-${{ inputs.version }}-${{ github.run_number }}"
-        git checkout -b $BRANCH_NAME
         git push origin $BRANCH_NAME
         BASE_BRANCH=${{ inputs.default_branch }}
         if [[ "${{ inputs.default_branch }}" == "${{ inputs.version }}" ]]; then
