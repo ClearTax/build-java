@@ -237,7 +237,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
       with:
-        tag_name: ${{ steps.get-next-version.outputs.version }}
+        tag_name: v${{ steps.get-next-version.outputs.version }}
         release_name: Release ${{ steps.get-next-version.outputs.version }}
         body: |
             This release corresponds to tag ${{ steps.get-next-version.outputs.version }}
