@@ -232,6 +232,7 @@ runs:
           ${{ github.workspace }}/**/*.jar
         retention-days: 1
     - name: Create a GitHub release
+      if: ${{ inputs.versioning_strategy == 'trunk' && (steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true') }}
       uses: ncipollo/release-action@v1
       with:
         tag: v${{ steps.get-next-version.outputs.version }}
