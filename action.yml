@@ -38,7 +38,7 @@ inputs:
 outputs:
   version:
     description: 'The version of the artifact'
-    value: ${{ steps.set-version.outputs.version }}
+    value: ${{ steps.version.outputs.RELEASE_VERSION }}
   artifact-name:
     description: "The name of artifact it generated"
     value: artifacts-${{github.run_id}}
