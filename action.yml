@@ -111,7 +111,8 @@ runs:
 
         echo "RELEASE_VERSION=$CLEAN_TAG" >> $GITHUB_ENV
         echo "NEXT_VERSION=$NEXT_VERSION" >> $GITHUB_ENV
-
+        echo "RELEASE_VERSION=$CLEAN_TAG" >> $GITHUB_OUTPUT
+        
     - name: Run Maven Release
       shell: bash
       env:
