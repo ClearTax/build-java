@@ -166,7 +166,7 @@ runs:
     - name: Get Next Version (Trunk Strategy - Master/Hotfix)
       id: get-next-version
       if: ${{ inputs.versioning_strategy == 'trunk' && (steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true') }}
-      uses: ClearTax/get-next-version-action@main
+      uses: ClearTax/get-next-version-action@arunclear-patch-1
       with:
         repo-token: ${{ inputs.token }}
 
