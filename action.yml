@@ -198,7 +198,6 @@ runs:
       shell: bash
 
     - name: Upload artifacts
-      if: ${{ steps.ref.outputs.master == 'true' || steps.ref.outputs.hotfix == 'true' }}
       uses: 'actions/upload-artifact@v4'
       with:
         name: artifacts-${{ github.run_id }}
