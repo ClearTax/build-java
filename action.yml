@@ -31,6 +31,10 @@ inputs:
     description: 'The Amazon Resource Name (ARN) of the role to assume. This is required for s3 cache'
     default: ''
     required: false
+  upload_artifact:
+    description: 'Upload build artifacts to GitHub Actions'
+    default: 'true'
+    required: false
 
 outputs:
   version:
@@ -198,6 +202,7 @@ runs:
       shell: bash
 
     - name: Upload artifacts
+      if: ${{ inputs.upload_artifact == 'true' }}
       uses: 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' # v4.6.2
       with:
         name: artifacts-${{ github.run_id }}
