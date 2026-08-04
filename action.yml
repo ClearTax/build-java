@@ -24,6 +24,10 @@ inputs:
     description: 'The ref to build'
     default: "${{ github.ref }}"
     required: false
+  release_refs:
+    description: 'Additional space-separated refs that should produce a release build, alongside refs/heads/master and refs/heads/main (e.g. "refs/heads/ewb-master")'
+    default: ''
+    required: false
   tag_name_prefix:
     description: 'Tag name prefix to be used for checkout and release tagging'
     default: ''
@@ -99,10 +103,21 @@ runs:
 
     - name: Check the source ref
       id: ref
-      env: 
+      env:
           HOTFIX: ${{ contains( inputs.ref, 'hotfix/') }}
-          MASTER: ${{ inputs.ref == 'refs/heads/master' || inputs.ref == 'refs/heads/main' }}
+          REF: ${{ inputs.ref }}
+          RELEASE_REFS: ${{ inputs.release_refs }}
       run: |
+          # refs/heads/master and refs/heads/main always release; callers can add
+          # more via release_refs (space separated) for repos that ship a second
+          # long-lived line, e.g. refs/heads/ewb-master.
+          MASTER=false
+          for release_ref in refs/heads/master refs/heads/main $RELEASE_REFS; do
+            if [[ "$REF" == "$release_ref" ]]; then
+              MASTER=true
+              break
+            fi
+          done
           echo "hotfix=$HOTFIX" >> $GITHUB_OUTPUT
           echo "master=$MASTER" >> $GITHUB_OUTPUT
       shell: bash
